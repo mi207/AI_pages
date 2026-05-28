@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Date Request</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        position: relative;
+        display: grid;
+        place-items: center;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(255, 171, 195, 0.9), transparent 34%),
+          radial-gradient(circle at bottom right, rgba(166, 206, 255, 0.9), transparent 34%),
+          linear-gradient(135deg, #fff7fb, #f5f7ff);
+        color: #231927;
+        overflow: hidden;
+      }
+
+      .hearts {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .heart {
+        position: absolute;
+        font-size: 22px;
+        opacity: 0.45;
+        animation: floatUp 8s linear infinite;
+      }
+
+      .heart:nth-child(1) { left: 9%; animation-delay: 0s; }
+      .heart:nth-child(2) { left: 23%; animation-delay: 1.5s; }
+      .heart:nth-child(3) { left: 41%; animation-delay: 3s; }
+      .heart:nth-child(4) { left: 66%; animation-delay: 0.8s; }
+      .heart:nth-child(5) { left: 82%; animation-delay: 2.4s; }
+
+      .card {
+        width: min(92vw, 560px);
+        padding: 34px;
+        border-radius: 34px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.78);
+        box-shadow: 0 30px 90px rgba(99, 54, 92, 0.18);
+        backdrop-filter: blur(18px);
+        text-align: center;
+        position: relative;
+        z-index: 2;
+      }
+
+      .badge {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 13px;
+        border-radius: 999px;
+        background: #fff;
+        color: #a23372;
+        font-size: 14px;
+        font-weight: 800;
+        box-shadow: 0 10px 30px rgba(162, 51, 114, 0.12);
+      }
+
+      h1 {
+        margin: 22px 0 12px;
+        font-size: clamp(34px, 8vw, 56px);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+
+      .message {
+        min-height: 72px;
+        margin: 0 auto 24px;
+        max-width: 430px;
+        color: #665268;
+        font-size: 18px;
+        line-height: 1.45;
+      }
+
+      .code-box {
+        margin: 20px auto 26px;
+        max-width: 420px;
+        text-align: left;
+        border-radius: 18px;
+        padding: 16px;
+        background: #211827;
+        color: #ffe8f4;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 14px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+      }
+
+      .code-box span {
+        color: #ffb5d3;
+      }
+
+      .date-picker {
+        margin: 20px auto 22px;
+        max-width: 420px;
+        display: grid;
+        gap: 12px;
+        text-align: left;
+      }
+
+      .date-picker label {
+        font-size: 13px;
+        font-weight: 900;
+        color: #7b4569;
+        margin-left: 4px;
+      }
+
+      .date-picker input,
+      .date-picker select {
+        width: 100%;
+        border: 0;
+        border-radius: 16px;
+        padding: 14px 15px;
+        background: #fff;
+        color: #231927;
+        font: inherit;
+        font-weight: 750;
+        box-shadow: 0 12px 28px rgba(98, 76, 105, 0.1);
+        outline: 2px solid transparent;
+      }
+
+      .date-picker input:focus,
+      .date-picker select:focus {
+        outline-color: rgba(255, 79, 154, 0.35);
+      }
+
+      .date-result {
+        display: none;
+        margin: 14px auto 0;
+        max-width: 420px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 79, 154, 0.1);
+        color: #8c2d62;
+        font-weight: 850;
+        line-height: 1.4;
+      }
+
+      .date-result.show {
+        display: block;
+      }
+
+      .screenshot-note {
+        margin: 14px auto 0;
+        max-width: 420px;
+        color: #6b5870;
+        font-size: 14px;
+        font-weight: 750;
+        line-height: 1.35;
+      }
+
+      .buttons {
+        min-height: 58px;
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 0;
+        cursor: pointer;
+        border-radius: 999px;
+        padding: 15px 25px;
+        font-size: 17px;
+        font-weight: 900;
+        transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-2px) scale(1.03);
+      }
+
+      .yes {
+        background: #ff4f9a;
+        color: white;
+        box-shadow: 0 14px 34px rgba(255, 79, 154, 0.35);
+      }
+
+      .no {
+        background: #fff;
+        color: #6b5870;
+        box-shadow: 0 12px 28px rgba(98, 76, 105, 0.12);
+      }
+
+      .no.runaway {
+        position: fixed;
+        z-index: 999;
+        transition: left 180ms ease, top 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+      }
+
+      .no.sneaky {
+        animation: wiggle 380ms ease;
+      }
+
+      .no.runaway.sneaky {
+        position: fixed;
+      }
+
+      .success {
+        display: none;
+      }
+
+      .card.accepted .question {
+        display: none;
+      }
+
+      .card.accepted .success {
+        display: block;
+      }
+
+      .confetti {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        display: none;
+      }
+
+      .card.accepted ~ .confetti {
+        display: block;
+      }
+
+      .piece {
+        position: absolute;
+        top: -20px;
+        width: 10px;
+        height: 18px;
+        border-radius: 3px;
+        background: #ff4f9a;
+        animation: drop 2.4s linear infinite;
+      }
+
+      .piece:nth-child(1) { left: 10%; animation-delay: 0s; }
+      .piece:nth-child(2) { left: 21%; animation-delay: 0.3s; background: #9bbcff; }
+      .piece:nth-child(3) { left: 33%; animation-delay: 0.1s; background: #ffd166; }
+      .piece:nth-child(4) { left: 48%; animation-delay: 0.5s; }
+      .piece:nth-child(5) { left: 62%; animation-delay: 0.2s; background: #7bdcb5; }
+      .piece:nth-child(6) { left: 77%; animation-delay: 0.7s; background: #9bbcff; }
+      .piece:nth-child(7) { left: 90%; animation-delay: 0.4s; background: #ffd166; }
+
+      @keyframes floatUp {
+        from { transform: translateY(105vh) rotate(0deg); }
+        to { transform: translateY(-18vh) rotate(360deg); }
+      }
+
+      @keyframes wiggle {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+      }
+
+      @keyframes drop {
+        to { transform: translateY(110vh) rotate(540deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hearts" aria-hidden="true">
+      <div class="heart">♡</div>
+      <div class="heart">❤</div>
+      <div class="heart">♡</div>
+      <div class="heart">❤</div>
+      <div class="heart">♡</div>
+    </div>
+
+    <main class="card" id="card">
+      <section class="question">
+        <div class="badge">&lt;/&gt; important runtime prompt</div>
+        <h1>Will you go on a date with me?</h1>
+        <p class="message" id="message">
+          Please choose carefully. This program was written with excessive hope and questionable error handling.
+        </p>
+
+        <div class="code-box" id="codeBox">
+          const yourAnswer = await askHer();<br />
+          if (yourAnswer === <span>"yes"</span>) deployHappiness();
+        </div>
+
+        <div class="buttons">
+          <button class="yes" id="yesButton">Yes 💖</button>
+          <button class="no" id="noButton">No</button>
+        </div>
+      </section>
+
+      <section class="success">
+        <div class="badge">merge request approved</div>
+        <h1>Yay. Date confirmed.</h1>
+        <p class="message">
+          Excellent choice. I will now prepare snacks, overthink the outfit, and pretend this was a perfectly normal user flow.
+        </p>
+        <div class="code-box">
+          status: <span>"officially adorable"</span><br />
+          nextStep: <span>"pick a time"</span><br />
+          bugCount: <span>0</span>
+        </div>
+
+        <div class="date-picker">
+          <div>
+            <label for="dateInput">Pick the date</label>
+            <input id="dateInput" type="date" />
+          </div>
+          <div>
+            <label for="timeInput">Pick the time</label>
+            <input id="timeInput" type="time" />
+          </div>
+          <div>
+            <label for="planInput">Optional plan</label>
+            <select id="planInput">
+              <option value="coffee">Coffee ☕</option>
+              <option value="dinner">Dinner 🍝</option>
+              <option value="dessert">Dessert 🍰</option>
+              <option value="walk">A cute walk 🌙</option>
+              <option value="surprise">Surprise me ✨</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="yes" id="confirmDateButton">
+          Confirm date 💌
+        </button>
+
+        <div class="date-result" id="dateResult"></div>
+        <p class="screenshot-note">
+          Then screenshot this page and text it to Mehdi so he can pretend he did not absolutely over-engineer this.
+        </p>
+      </section>
+    </main>
+
+    <div class="confetti" aria-hidden="true">
+      <div class="piece"></div>
+      <div class="piece"></div>
+      <div class="piece"></div>
+      <div class="piece"></div>
+      <div class="piece"></div>
+      <div class="piece"></div>
+      <div class="piece"></div>
+    </div>
+
+    <script>
+      const card = document.getElementById("card");
+      const yesButton = document.getElementById("yesButton");
+      const noButton = document.getElementById("noButton");
+      const message = document.getElementById("message");
+      const codeBox = document.getElementById("codeBox");
+      const dateInput = document.getElementById("dateInput");
+      const timeInput = document.getElementById("timeInput");
+      const planInput = document.getElementById("planInput");
+      const confirmDateButton = document.getElementById("confirmDateButton");
+      const dateResult = document.getElementById("dateResult");
+
+      const noResponses = [
+        {
+          text: "Hmm. Compiler warning: 'No' is not assignable to type 'CorrectAnswer'. Try again?",
+          code: "type CorrectAnswer = \"yes\";\nconst answer: CorrectAnswer = \"no\"; // error"
+        },
+        {
+          text: "WAIT. You actually said yes. I checked the logs. The button just rendered incorrectly.",
+          code: "console.log(userIntent);\n// output: definitely yes"
+        },
+        {
+          text: "No route found for /no. Redirecting to /yes because this app believes in destiny.",
+          code: "router.get('/no', () => redirect('/yes'))"
+        },
+        {
+          text: "The No button has filed for retirement. It says you two should get dessert instead.",
+          code: "noButton.disabled = true;\nyesButton.focus();"
+        },
+        {
+          text: "Okay okay, final patch: I left you no choice, but in the cutest possible way.",
+          code: "while (answer !== \"yes\") {\n  askAdorablyAgain();\n}"
+        }
+      ];
+
+      let noCount = 0;
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      dateInput.min = `${yyyy}-${mm}-${dd}`;
+
+      function formatDateChoice(dateValue, timeValue, planValue) {
+        const selectedDate = new Date(`${dateValue}T${timeValue || "00:00"}`);
+        const prettyDate = selectedDate.toLocaleDateString(undefined, {
+          weekday: "long",
+          month: "long",
+          day: "numeric"
+        });
+        const prettyTime = timeValue
+          ? selectedDate.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+          : "a mystery time";
+
+        return `Date request merged ✅ ${prettyDate} at ${prettyTime}. Plan: ${planValue}. Screenshot this and text it to Mehdi 😌💖`;
+      }
+
+      confirmDateButton.addEventListener("click", () => {
+        if (!dateInput.value || !timeInput.value) {
+          dateResult.textContent = "Tiny validation bug: please pick both a date and a time first 🥺";
+          dateResult.classList.add("show");
+          return;
+        }
+
+        const selectedPlan = planInput.options[planInput.selectedIndex].text;
+        dateResult.textContent = formatDateChoice(dateInput.value, timeInput.value, selectedPlan);
+        dateResult.classList.add("show");
+      });
+
+      function acceptDate() {
+        card.classList.add("accepted");
+      }
+
+      yesButton.addEventListener("click", acceptDate);
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function getViewportBounds() {
+        const viewport = window.visualViewport;
+        return {
+          left: viewport ? viewport.offsetLeft : 0,
+          top: viewport ? viewport.offsetTop : 0,
+          width: viewport ? viewport.width : window.innerWidth,
+          height: viewport ? viewport.height : window.innerHeight
+        };
+      }
+
+      function getCenterHalfBounds(buttonWidth = 0, buttonHeight = 0) {
+        const bounds = getViewportBounds();
+        const centerLeft = bounds.left + bounds.width * 0.25;
+        const centerTop = bounds.top + bounds.height * 0.25;
+        const centerWidth = bounds.width * 0.5;
+        const centerHeight = bounds.height * 0.5;
+
+        return {
+          minLeft: centerLeft,
+          minTop: centerTop,
+          maxLeft: Math.max(centerLeft, centerLeft + centerWidth - buttonWidth),
+          maxTop: Math.max(centerTop, centerTop + centerHeight - buttonHeight)
+        };
+      }
+
+      function keepNoButtonOnScreen() {
+        if (!noButton.classList.contains("runaway")) return;
+
+        const rect = noButton.getBoundingClientRect();
+        const centerBounds = getCenterHalfBounds(rect.width, rect.height);
+        const safeLeft = clamp(rect.left, centerBounds.minLeft, centerBounds.maxLeft);
+        const safeTop = clamp(rect.top, centerBounds.minTop, centerBounds.maxTop);
+
+        noButton.style.left = `${safeLeft}px`;
+        noButton.style.top = `${safeTop}px`;
+      }
+
+      function moveNoButton() {
+        if (!noButton.classList.contains("runaway")) {
+          const rect = noButton.getBoundingClientRect();
+          const centerBounds = getCenterHalfBounds(rect.width, rect.height);
+
+          noButton.style.left = `${clamp(rect.left, centerBounds.minLeft, centerBounds.maxLeft)}px`;
+          noButton.style.top = `${clamp(rect.top, centerBounds.minTop, centerBounds.maxTop)}px`;
+          noButton.style.width = `${rect.width}px`;
+          noButton.classList.add("runaway");
+        }
+
+        const buttonWidth = noButton.offsetWidth;
+        const buttonHeight = noButton.offsetHeight;
+        const centerBounds = getCenterHalfBounds(buttonWidth, buttonHeight);
+        const nextLeft = clamp(
+          centerBounds.minLeft + Math.random() * (centerBounds.maxLeft - centerBounds.minLeft),
+          centerBounds.minLeft,
+          centerBounds.maxLeft
+        );
+        const nextTop = clamp(
+          centerBounds.minTop + Math.random() * (centerBounds.maxTop - centerBounds.minTop),
+          centerBounds.minTop,
+          centerBounds.maxTop
+        );
+
+        noButton.style.left = `${nextLeft}px`;
+        noButton.style.top = `${nextTop}px`;
+      }
+
+      window.addEventListener("resize", keepNoButtonOnScreen);
+      window.addEventListener("orientationchange", keepNoButtonOnScreen);
+      window.visualViewport?.addEventListener("resize", keepNoButtonOnScreen);
+      window.visualViewport?.addEventListener("scroll", keepNoButtonOnScreen);
+
+      noButton.addEventListener("mouseenter", moveNoButton);
+      noButton.addEventListener("touchstart", moveNoButton, { passive: true });
+
+      noButton.addEventListener("click", () => {
+        moveNoButton();
+        const response = noResponses[Math.min(noCount, noResponses.length - 1)];
+        message.textContent = response.text;
+        codeBox.innerHTML = response.code
+          .replaceAll("\n", "<br />")
+          .replaceAll('"yes"', '<span>"yes"</span>')
+          .replaceAll('"no"', '<span>"no"</span>')
+          .replaceAll("definitely yes", "<span>definitely yes</span>");
+
+        noButton.classList.remove("sneaky");
+        void noButton.offsetWidth;
+        noButton.classList.add("sneaky");
+
+        noCount += 1;
+
+        if (noCount === 3) {
+          noButton.textContent = "Are you sure? 🥺";
+        }
+
+        if (noCount === 5) {
+          noButton.textContent = "Okay fine... Yes 😌";
+        }
+
+        if (noCount > 5) {
+          acceptDate();
+        }
+      });
+    </script>
+  </body>
+</html>
